@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Thor VPN</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #FFFFFF;
+    --surface: #FFF3EA;
+    --surface-2: #FFE6D2;
+    --line: #FFD6B3;
+    --text: #241C15;
+    --muted: #9C8776;
+    --teal: #FF6A1A;
+    --teal-dim: #C2440A;
+    --amber: #FFB238;
+    --danger: #E0453A;
+    --page-grad: radial-gradient(120% 120% at 50% -10%, #FFF8F2 0%, #FFE9D6 60%, #FFDAB6 100%);
+    --bezel: #06080C;
+    --bezel-line: #1A2130;
+    --device-glow: rgba(255,106,26,0.12);
+    --net-glow: rgba(255,106,26,0.7);
+    --brand-grad-2: #8A2E00;
+    --btn-connected-grad: radial-gradient(circle at 35% 30%, #FFE3CC, #FFF6EE);
+    --btn-connecting-grad: radial-gradient(circle at 35% 30%, #FFEFC7, #FFFAEC);
+    --ring-connected: rgba(255,106,26,0.4);
+    --stat-down: #B54708;
+    --scrim: rgba(4,6,9,0.65);
+    transition: background 0.35s ease;
+  }
+
+  body.dark {
+    --bg: #0F0B08;
+    --surface: #1C1410;
+    --surface-2: #261B14;
+    --line: #3C2B1E;
+    --text: #F5ECE3;
+    --muted: #A8917D;
+    --teal: #FF7A2E;
+    --teal-dim: #B3480A;
+    --amber: #FFC107;
+    --danger: #FF6B5E;
+    --page-grad: radial-gradient(120% 120% at 50% -10%, #171009 0%, #0A0704 70%);
+    --bezel: #000000;
+    --bezel-line: #241A12;
+    --device-glow: rgba(255,122,46,0.18);
+    --net-glow: rgba(255,122,46,0.75);
+    --brand-grad-2: #3A1400;
+    --btn-connected-grad: radial-gradient(circle at 35% 30%, #3D2410, #150D07);
+    --btn-connecting-grad: radial-gradient(circle at 35% 30%, #3A2B0E, #1A1408);
+    --ring-connected: rgba(255,122,46,0.5);
+    --stat-down: #FF9A66;
+    --scrim: rgba(0,0,0,0.75);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    height: 100%;
+    background: var(--page-grad);
+    transition: background 0.35s ease;
+    font-family: 'Inter', sans-serif;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  }
+
+  /* Phone frame */
+  .device {
+    width: 390px;
+    height: 830px;
+    background: var(--bg);
+    border-radius: 46px;
+    border: 10px solid var(--bezel);
+    box-shadow:
+      0 0 0 1px var(--bezel-line),
+      0 40px 100px -20px rgba(0,0,0,0.35),
+      0 0 80px -10px var(--device-glow);
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    transition: background 0.35s ease, border-color 0.35s ease, box-shadow 0.35s ease;
+  }
+
+  .notch {
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 120px;
+    height: 24px;
+    background: var(--bezel);
+    border-radius: 14px;
+    z-index: 20;
+  }
+
+  .statusbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 28px 4px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    color: var(--text);
+    letter-spacing: 0.02em;
+  }
+
+  .status-right {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+
+  .net-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--teal);
+    box-shadow: 0 0 6px var(--net-glow);
+    transition: background 0.3s ease, box-shadow 0.3s ease;
+  }
+  .net-dot.offline {
+    background: var(--danger);
+    box-shadow: 0 0 6px rgba(255,92,108,0.7);
+  }
+
+  .battery {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .battery-shell {
+    width: 22px;
+    height: 11px;
+    border: 1.4px solid var(--text);
+    border-radius: 3px;
+    position: relative;
+    padding: 1.5px;
+  }
+  .battery-shell::after {
+    content: "";
+    position: absolute;
+    right: -3.5px;
+    top: 3px;
+    width: 2px;
+    height: 5px;
+    background: var(--text);
+    border-radius: 0 2px 2px 0;
+  }
+  .battery-fill {
+    height: 100%;
+    width: 100%;
+    background: var(--teal);
+    border-radius: 1px;
+    transition: width 0.4s ease, background 0.4s ease;
+  }
+  .battery-fill.low { background: var(--danger); }
+  .battery-fill.mid { background: var(--amber); }
+  .battery-fill.charging { background: var(--teal); }
+
+  .screen {
+    flex: 1;
+    padding: 8px 26px 26px;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .screen::-webkit-scrollbar { display: none; }
+
+  /* Header */
+  .app-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 0 6px;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .brand-mark {
+    width: 30px; height: 30px;
+    border-radius: 8px;
+    background: linear-gradient(155deg, var(--teal), var(--brand-grad-2));
+    position: relative;
+  }
+  .brand-mark::after{
+    content:"";
+    position:absolute; inset: 8px;
+    border: 2px solid var(--bg);
+    border-radius: 3px;
+  }
+
+  .brand-name {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 600;
+    font-size: 17px;
+    letter-spacing: -0.01em;
+  }
+
+  .icon-btn {
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--muted);
+    font-size: 14px;
+    cursor: pointer;
+    transition: background 0.35s ease, border-color 0.35s ease;
+  }
+
+  /* Status label */
+  .status-eyebrow {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--muted);
+    text-align: center;
+    margin-top: 18px;
+  }
+
+  .status-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 26px;
+    font-weight: 600;
+    text-align: center;
+    margin-top: 4px;
+    transition: color 0.4s ease;
+  }
+  .status-title.connected { color: var(--teal); }
+  .status-title.connecting { color: var(--amber); }
+  .status-title.off { color: var(--text); }
+
+  /* Signature: pulse rings + shield */
+  .ring-stage {
+    position: relative;
+    width: 260px;
+    height: 260px;
+    margin: 22px auto 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .ring {
+    position: absolute;
+    border-radius: 50%;
+    border: 1px solid var(--teal-dim);
+    opacity: 0;
+  }
+  .ring-stage.connecting .ring,
+  .ring-stage.connected .ring {
+    animation: ripple 2.6s ease-out infinite;
+  }
+  .ring-stage.connecting .ring { border-color: rgba(255,178,56,0.5); animation-duration: 1.1s; }
+  .ring-stage.connected .ring { border-color: var(--ring-connected); }
+
+  .ring:nth-child(1) { width: 140px; height: 140px; animation-delay: 0s; }
+  .ring:nth-child(2) { width: 140px; height: 140px; animation-delay: 0.7s; }
+  .ring:nth-child(3) { width: 140px; height: 140px; animation-delay: 1.4s; }
+
+  @keyframes ripple {
+    0%   { width: 140px; height: 140px; opacity: 0.7; }
+    100% { width: 260px; height: 260px; opacity: 0; }
+  }
+
+  .connect-btn {
+    position: relative;
+    width: 148px;
+    height: 148px;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+    background: var(--surface);
+    box-shadow: inset 0 0 0 1px var(--line);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: box-shadow 0.4s ease, background 0.4s ease, transform 0.15s ease;
+    z-index: 2;
+  }
+  .connect-btn:active { transform: scale(0.97); }
+
+  .connect-btn.connected {
+    background: var(--btn-connected-grad);
+    box-shadow: inset 0 0 0 1.5px var(--teal), 0 0 40px -6px rgba(255,106,26,0.45);
+  }
+  .connect-btn.connecting {
+    background: var(--btn-connecting-grad);
+    box-shadow: inset 0 0 0 1.5px var(--amber), 0 0 40px -6px rgba(255,178,56,0.4);
+  }
+
+  .connect-btn svg { width: 46px; height: 46px; transition: stroke 0.4s ease, fill 0.4s ease; }
+  .connect-btn.off svg { stroke: var(--muted); }
+  .connect-btn.connected svg { stroke: var(--teal); }
+  .connect-btn.connecting svg { stroke: var(--amber); }
+
+  .hint {
+    text-align: center;
+    font-size: 12.5px;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+
+  /* Server row */
+  .server-row {
+    margin-top: 20px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 13px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .server-info { display: flex; align-items: center; gap: 12px; }
+
+  .flag {
+    width: 34px; height: 34px;
+    border-radius: 9px;
+    background: var(--surface-2);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+  }
+
+  .server-name { font-size: 14px; font-weight: 600; font-family: 'Space Grotesk', sans-serif; }
+  .server-ping { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--teal); margin-top: 2px; }
+
+  .chevron { color: var(--muted); font-size: 13px; }
+
+  /* Stats grid */
+  .stats-grid {
+    margin-top: 14px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 12px 12px;
+  }
+
+  .stat-label {
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-family: 'IBM Plex Mono', monospace;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .stat-value {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 16px;
+    font-weight: 500;
+    margin-top: 6px;
+    color: var(--text);
+  }
+  .stat-value.up { color: var(--teal); }
+  .stat-value.down { color: var(--stat-down); }
+
+  .credit {
+    text-align: center;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10.5px;
+    letter-spacing: 0.04em;
+    color: var(--muted);
+    margin-top: 18px;
+  }
+
+  /* Bottom nav */
+  .tabbar {
+    margin-top: auto;
+    display: flex;
+    justify-content: space-around;
+    padding-top: 14px;
+    border-top: 1px solid var(--line);
+  }
+  .tab {
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    color: var(--muted);
+    font-size: 10px;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+  .tab.active { color: var(--teal); }
+  .tab svg { width: 20px; height: 20px; }
+
+  /* bottom sheet modal */
+  .sheet-backdrop {
+    position: absolute; inset: 0;
+    background: var(--scrim);
+    backdrop-filter: blur(2px);
+    display: flex;
+    align-items: flex-end;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+    z-index: 30;
+  }
+  .sheet-backdrop.open { opacity: 1; pointer-events: auto; }
+
+  .sheet {
+    width: 100%;
+    background: var(--surface);
+    border-top: 1px solid var(--line);
+    border-radius: 24px 24px 0 0;
+    padding: 20px 24px 30px;
+    transform: translateY(100%);
+    transition: transform 0.3s ease;
+  }
+  .sheet-backdrop.open .sheet { transform: translateY(0); }
+
+  .sheet-handle {
+    width: 36px; height: 4px;
+    background: var(--line);
+    border-radius: 3px;
+    margin: 0 auto 16px;
+  }
+
+  .sheet-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 17px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .sheet-sub {
+    font-size: 12.5px;
+    color: var(--muted);
+    margin-bottom: 18px;
+  }
+
+  .sheet-btn {
+    width: 100%;
+    padding: 14px;
+    border-radius: 12px;
+    border: none;
+    background: var(--teal);
+    color: #FFFFFF;
+    font-weight: 600;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 14px;
+    cursor: pointer;
+  }
+
+  .server-row { cursor: pointer; }
+
+  .sheet.tall { max-height: 78vh; overflow-y: auto; }
+
+  .server-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 6px;
+  }
+
+  .server-opt {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 11px 13px;
+    cursor: pointer;
+  }
+  .server-opt.selected {
+    border-color: var(--teal);
+    box-shadow: 0 0 0 1px var(--teal);
+  }
+
+  .server-opt-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .server-opt .flag { width: 30px; height: 30px; font-size: 15px; }
+
+  .server-opt-name {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 600;
+    font-size: 13.5px;
+  }
+  .server-opt-city {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 1px;
+  }
+
+  .server-opt-ping {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    color: var(--teal);
+  }
+  .server-opt-ping.slow { color: var(--amber); }
+
+  .switch-btn {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    color: var(--teal);
+    background: rgba(255,106,26,0.08);
+    border: 1px solid rgba(255,106,26,0.35);
+    border-radius: 8px;
+    padding: 7px 11px;
+    cursor: pointer;
+  }
+  .switch-btn:active { transform: scale(0.97); }
+
+  .server-opt-check {
+    color: var(--teal);
+    font-size: 14px;
+    margin-left: 10px;
+    opacity: 0;
+    width: 14px;
+  }
+  .server-opt.selected .server-opt-check { opacity: 1; }
+</style>
+</head>
+<body class="dark">
+
+<div class="device">
+  <div class="notch"></div>
+  <div class="statusbar">
+    <span id="clock">9:41</span>
+    <span id="netLabel">THOR</span>
+    <div class="status-right">
+      <div class="net-dot" id="netDot" title="Connection status"></div>
+      <div class="battery" title="Battery">
+        <span id="batteryPct">—</span>
+        <div class="battery-shell"><div class="battery-fill" id="batteryFill" style="width:100%"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="screen">
+    <div class="app-header">
+      <div class="brand">
+        <div class="brand-mark"></div>
+        <div class="brand-name">Thor</div>
+      </div>
+      <div style="display:flex; gap:8px;">
+        <button class="icon-btn" id="themeToggle" title="Toggle dark mode">🌙</button>
+        <div class="icon-btn">⚙</div>
+      </div>
+    </div>
+
+    <div class="status-eyebrow" id="statusEyebrow">DISCONNECTED</div>
+    <div class="status-title off" id="statusTitle">Not protected</div>
+
+    <div class="ring-stage" id="ringStage">
+      <div class="ring"></div>
+      <div class="ring"></div>
+      <div class="ring"></div>
+      <button class="connect-btn off" id="connectBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2 4 5v6c0 5 3.4 8.7 8 10 4.6-1.3 8-5 8-10V5l-8-3Z"/>
+          <path id="checkPath" d="M9 12l2 2 4-4" style="opacity:0"/>
+        </svg>
+      </button>
+    </div>
+
+    <div class="hint" id="hint">Tap to connect</div>
+
+    <div class="server-row" id="serverRow">
+      <div class="server-info">
+        <div class="flag" id="serverFlag">🇸🇪</div>
+        <div>
+          <div class="server-name" id="serverName">Stockholm #3</div>
+          <div class="server-ping"><span id="pingVal">— ms</span> · <span id="serverLocalTime">— local</span></div>
+        </div>
+      </div>
+      <div class="chevron">▾</div>
+    </div>
+    <div style="display:flex; justify-content:flex-end; margin-top:8px;">
+      <button class="switch-btn" id="switchCountryBtn">Switch country</button>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">Upload</div>
+        <div class="stat-value up" id="upVal">0.0 MB/s</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Download</div>
+        <div class="stat-value down" id="downVal">0.0 MB/s</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Session</div>
+        <div class="stat-value" id="timeVal">00:00:00</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Data used</div>
+        <div class="stat-value" id="dataVal">0 MB</div>
+      </div>
+    </div>
+
+    <div class="credit">Created by Gaurav</div>
+
+    <div class="tabbar">
+      <div class="tab active">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 2 4 5v6c0 5 3.4 8.7 8 10 4.6-1.3 8-5 8-10V5l-8-3Z"/></svg>
+        Home
+      </div>
+      <div class="tab">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.6 4 6 4 9s-1.5 6.4-4 9c-2.5-2.6-4-6-4-9s1.5-6.4 4-9Z"/></svg>
+        Servers
+      </div>
+      <div class="tab">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 12l4-2 4 6 4-14 4 8 3-2"/></svg>
+        Activity
+      </div>
+    </div>
+  </div>
+
+  <!-- Server sheet -->
+  <div class="sheet-backdrop" id="serverBackdrop">
+    <div class="sheet tall">
+      <div class="sheet-handle"></div>
+      <div class="sheet-title">Choose a location</div>
+      <div class="sheet-sub">Lower ping usually means a faster connection.</div>
+      <div class="server-list" id="serverList"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const btn = document.getElementById('connectBtn');
+  const ringStage = document.getElementById('ringStage');
+  const statusEyebrow = document.getElementById('statusEyebrow');
+  const statusTitle = document.getElementById('statusTitle');
+  const hint = document.getElementById('hint');
+  const upVal = document.getElementById('upVal');
+  const downVal = document.getElementById('downVal');
+  const timeVal = document.getElementById('timeVal');
+  const pingVal = document.getElementById('pingVal');
+  const checkPath = document.getElementById('checkPath');
+
+  let state = 'off'; // off | connecting | connected
+  let sessionSeconds = 0;
+  let dataUsedMB = 0;
+  let tickInterval = null;
+
+  const servers = [
+    { id: 'se', flag: '🇸🇪', name: 'Stockholm #3', city: 'Sweden', ping: 22, tz: 2 },
+    { id: 'us-e', flag: '🇺🇸', name: 'New York #1', city: 'United States', ping: 41, tz: -4 },
+    { id: 'us-w', flag: '🇺🇸', name: 'San Francisco #2', city: 'United States', ping: 96, tz: -7 },
+    { id: 'gb', flag: '🇬🇧', name: 'London #5', city: 'United Kingdom', ping: 33, tz: 1 },
+    { id: 'de', flag: '🇩🇪', name: 'Frankfurt #2', city: 'Germany', ping: 27, tz: 2 },
+    { id: 'jp', flag: '🇯🇵', name: 'Tokyo #4', city: 'Japan', ping: 118, tz: 9 },
+    { id: 'sg', flag: '🇸🇬', name: 'Singapore #1', city: 'Singapore', ping: 142, tz: 8 },
+    { id: 'au', flag: '🇦🇺', name: 'Sydney #2', city: 'Australia', ping: 167, tz: 10 },
+    { id: 'ca', flag: '🇨🇦', name: 'Toronto #1', city: 'Canada', ping: 58, tz: -4 },
+    { id: 'br', flag: '🇧🇷', name: 'São Paulo #1', city: 'Brazil', ping: 134, tz: -3 },
+    { id: 'in', flag: '🇮🇳', name: 'Mumbai #3', city: 'India', ping: 151, tz: 5.5 },
+    { id: 'ch', flag: '🇨🇭', name: 'Zurich #1', city: 'Switzerland', ping: 29, tz: 2 },
+  ];
+  let currentServer = servers[0];
+
+  const serverRow = document.getElementById('serverRow');
+  const serverFlag = document.getElementById('serverFlag');
+  const serverName = document.getElementById('serverName');
+  const serverBackdrop = document.getElementById('serverBackdrop');
+  const serverList = document.getElementById('serverList');
+  const serverLocalTime = document.getElementById('serverLocalTime');
+  const dataVal = document.getElementById('dataVal');
+
+  function localTimeFor(tzOffset) {
+    const now = new Date();
+    const utcMs = now.getTime() + now.getTimezoneOffset() * 60000;
+    const target = new Date(utcMs + tzOffset * 3600000);
+    let h = target.getHours();
+    const m = String(target.getMinutes()).padStart(2, '0');
+    const s = String(target.getSeconds()).padStart(2, '0');
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    h = h % 12 || 12
